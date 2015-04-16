@@ -41,7 +41,7 @@ def exit_usage():
 
 def print_rosetta_sites(pdb_fname, out_filehandle,
                         receptor_chain_id="A", peptide_chain_id="B",
-                        interface_cutoff=5, atom_types="*"):
+                        interface_cutoff=5, atom_types="*", is_fullatom=False):
     '''
     print rosetta site constraints to file handle out_filehandle based
     on interface of pdb_fname complex between specified receptor and peptide
@@ -51,6 +51,7 @@ def print_rosetta_sites(pdb_fname, out_filehandle,
                  or a string with a singl type.,
                  e.g. ["CA","CB"], or "CA", or "*" to use all atoms.
                  If not a list but a string, will be converted to list with a single item
+    is_fullatom - if true, outputs original atoms, otherwise output only CB (or CA for Gly)
     '''
     # convert atom_types to list if a string
     if isinstance(atom_types, basestring): atom_types = [atom_types]
@@ -61,15 +62,26 @@ def print_rosetta_sites(pdb_fname, out_filehandle,
     peptide_atoms = get_atoms(peptide_chain, atom_types)
     ns = Bio.PDB.NeighborSearch(receptor_atoms)
     interface_set = set()
+    if is_fullatom:
+        level="A" # Atom level
+    else:
+        level="R" # Residue level
     for atom in peptide_atoms:
-        neighbors = ns.search(atom.get_coord(),radius=interface_cutoff,level="R")
+        neighbors = ns.search(atom.get_coord(),radius=interface_cutoff,level=level)
         interface_set.update(neighbors)
-    for res in sorted(interface_set):
+    for obj in sorted(interface_set):
+        if level=="R":
+            res=obj
+        else:
+            res=obj.parent
         res_id=res.id[1]
         ch_id=res.parent.id
         # penalty beyond 0-6 range, with std-dev 2.0
-        atom_name="CB"
-        if(res.resname=="GLY"):
+        if level=="A":
+            atom_name=obj.name
+        elif res.resname != "GLY":
+            atom_name="CB"
+        else:
             atom_name="CA"
         print >>out_filehandle, \
             "SiteConstraint %s %d%s %s BOUNDED 0 6 2.0 0.5 intrf" \
@@ -85,9 +97,13 @@ if (__name__ == "__main__"):
     atom_types="*" # all
     if len(sys.argv) > 2:
         atom_types = sys.argv[2].split(":")
+    if len(sys.argv) > 3 and sys.argv[3]=='fullatom':
+        is_fullatom=True;
+    else:
+        is_fullatom=False;
     receptor_chain_id="A"
     peptide_chain_id="B"
     interface_cutoff = 5 # in Angstrom
     print_rosetta_sites(pdb_filename, sys.stdout,
                         receptor_chain_id, peptide_chain_id,
-                        interface_cutoff, atom_types)
+                        interface_cutoff, atom_types, is_fullatom)
