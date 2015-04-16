@@ -1,0 +1,40 @@
+#!/bin/csh
+#$ -S /bin/csh
+#$ -o .
+#$ -cwd
+#$ -j y
+#$ -r y
+#$ -N cyl.job
+#$ -l arch=linux-x64,mem_free=0.75G
+#$ -l h_rt=240:00:00
+#$ -t 1-2000
+
+# Constants:
+set IMP=/netapp/sali/barak/imp_git/fast/
+set NPCBIN=$IMP/module_bin/npctransport/
+set i=$SGE_TASK_ID
+set OUTFOLDER=`pwd -P`
+set TMPDIR=/scratch
+set MYTMP=`mktemp -d`
+set seed=`od -An -N4 -td4 /dev/random`
+# Run info:
+echo Running \"$0 $argv\"
+echo "Work id $i"
+echo SEED: $seed
+echo "Output folder $OUTFOLDER"
+echo "NPC bin: $NPCBIN"
+echo "uname -a:"
+uname -a
+echo ======
+# Prepare out folder:
+if(! -e TIMESTAMP) then
+    echo Job id: $JOB_ID > TIMESTAMP
+endif
+# Run:
+cp config.pb run.sh $MYTMP
+cd $MYTMP
+echo "Temporary run folder $MYTMP"
+bash run.sh $i $seed
+echo "Moving final output files from $MYTMP to $OUTFOLDER"
+mv $MYTMP/* $OUTFOLDER
+rmdir $MYTMP
