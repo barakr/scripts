@@ -248,6 +248,8 @@ def prepare_from_receptor_pdb_and_pep_seq(receptor_pdb,
     global flags_abinitio35
     global flags_abinitio359
     cwd=os.getcwd() # save to restore in the end
+    if(not os.path.exists("Input")):
+        os.mkdir("Input")
     if native_pdb is None:
         native_pdb="start.pdb"
     else:
@@ -262,8 +264,6 @@ def prepare_from_receptor_pdb_and_pep_seq(receptor_pdb,
     pep_pdb = "pep.pdb"
     create_fasta_from_seq(pep_seq, pep_fasta)
     # prepare run flags files
-    if(not os.path.exists("Input")):
-        os.mkdir("Input")
     os.chdir("Input")
     command = ROSETTA + "/rosetta_source/bin/BuildPeptide.default.linuxgccrelease -database " + \
         ROSETTA + "/rosetta_database/ -in:file:fasta ../" + pep_fasta + \
