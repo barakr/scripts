@@ -4,11 +4,12 @@
 #$ -l h_rt=72:00:00
 #$ -pe ompi 100
 #$ -R yes
-#$ -V
+#$ -Vq
 #$ -cwd
-#$ -o /scrapp/barak/Logs
+#$ -o .
 #$ -N FPDock
 
+# /scrapp/barak/Logs
 module load openmpi-x86_64
 
 if [ $# -lt 3 ] ; then

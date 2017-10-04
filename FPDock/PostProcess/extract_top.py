@@ -57,7 +57,8 @@ for entry in entries[0:ntop]:
     print
     if(is_extract):
         score_fname = entry['fname']
-        silent_fname = re.sub(r'(.*)score_(.*)\.sc$',r'\1decoys_\2.silent', score_fname)
+        silent_fname = re.sub(r'(.*)score(.*)\.sc$',r'\1decoys\2.silent', score_fname)
+        print "SILENT", silent_fname
         # NOTE: next line is a SECURITY HAZARD due to possibly malicious content of entry[fname] or entry[description]
         #       do not use unless by a trusted user
         subprocess.call("/netapp/sali/barak/Rosetta/rosetta_source/bin/extract_pdbs.default.linuxgccrelease " +

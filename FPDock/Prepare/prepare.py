@@ -61,7 +61,7 @@ site_constraints='''
 -constraints:cst_weight 1.0
 '''
 
-flags_abinitio35= flags_basic + site_constraints + '''
+flags_abinitio35= flags_basic + '''
 -nstruct 50000
 
 # optimization
@@ -86,7 +86,8 @@ def get_pep_length(pdbfile):
 def switch_chain(pdbfile,chain_id="A"):
     structure = Bio.PDB.PDBParser().get_structure(pdbfile, pdbfile)
     chain = structure.get_chains().next()
-    chain.id=chain_id
+    if chain.id!=chain_id:
+        chain.id=chain_id
     io=Bio.PDB.PDBIO()
     io.set_structure(structure)
     io.save(pdbfile)
@@ -173,9 +174,9 @@ def process_one_pdb(pdb):
         soft_link_if_needed("../native.pdb", "native.pdb")
         soft_link_if_needed("../../Scripts/", "Scripts")
         if(get_pep_length("native.pdb") < 9):
-            print_string_to_file("flags_abinitio", flags_abinitio35)
+            print_string_to_file("flags_abinitio", flags_abinitio35 + site_constraints)
         else:
-            print_string_to_file("flags_abinitio", flags_abinitio359)
+            print_string_to_file("flags_abinitio", flags_abinitio359 + site_constraints)
         # Extract interface constraints from native
         # REPLACE WITH USER INTERFACE SITES CONSTRAINTS IN REAL SETTINGS
         with open("site.cst", "w") as sites_file_handle:
@@ -244,12 +245,18 @@ def prepare_from_receptor_pdb_and_pep_seq(receptor_pdb,
 
     native_pdb - if specified, pdb with native complex
     '''
+    global flags_abinitio35
+    global flags_abinitio359
     cwd=os.getcwd() # save to restore in the end
     if native_pdb is None:
         native_pdb="start.pdb"
     else:
        if not os.path.exists(native_pdb):
            raise IOError("%s not found" % native_pdb)
+       with open("Input/site.cst", "w") as sites_file_handle:
+           get_interface.print_rosetta_sites(native_pdb, sites_file_handle)
+           flags_abinitio35=  flags_abinitio35 + site_constraints
+           flags_abinitio359= flags_abinitio359 + site_constraints
     switch_chain(receptor_pdb, "A") # TODO: work on copy!!
     pep_fasta = "pep.fasta"
     pep_pdb = "pep.pdb"
@@ -282,4 +289,7 @@ def prepare_from_receptor_pdb_and_pep_seq(receptor_pdb,
     print "Finished with %s" % receptor_pdb
 
 
-prepare_from_receptor_pdb_and_pep_seq(sys.argv[1], sys.argv[2])
+if len(sys.argv)<=3:
+    prepare_from_receptor_pdb_and_pep_seq(sys.argv[1], sys.argv[2])
+else:
+    prepare_from_receptor_pdb_and_pep_seq(sys.argv[1], sys.argv[2], sys.argv[3])

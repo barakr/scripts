@@ -75,7 +75,10 @@ def main():
     if(len(sys.argv) <= 2):
         usage_and_exit()
     F=open(sys.argv[1],'r')
-    header=F.readline()
+    while(1):
+        header=F.readline()
+        if(len(header) > 15):
+            break
     ids = get_column_id(header, sys.argv[2:])
     for line in F:
         data = line.split()

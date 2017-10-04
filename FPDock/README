@@ -1,0 +1,113 @@
+==========
+Synopsis:
+==========
+Files for preparing, running and processing an FPDock ab-inito run from an input receptor PDB + sequence of peptide in string format
+
+==============
+Prerequisites:
+==============
+* Rosetta installation (e.g. on netapp in /netapp/sali/barak/Rosetta
+* Python installation with Biopython
+
+
+
+==========
+Variables:
+==========
+ROSETTA: rosetta installation folder e.g.  /netapp/sali/barak/Rosetta
+SCRIPTS: my scripts folder, e.g. /netapp/sali/barak/Scripts/FPDock/
+PYTHON: python installation folder (e.g. (e.g. /netapp/sali/barak/MyPython/bin/python)
+
+
+==========
+Protocol:
+==========
+
+-------
+Step 0: 
+-------
+Prepare your receptor PDB file:
+* Prepare a pdb file with receptor chain and call it 'receptor.pdb'
+* Clean receptor file, e.g. for receptor.pdb, use:
+   $python $ROSETTA/rosetta_tools/fragment_tools/pdb2vall/pdb_scripts/clean_pdb.py receptor.pdb 
+* You will get a new file - receptor.pdb.clean.pdb
+* Keep only the receptor chain, e.g., for chain A:
+   $awk 'substr($0,22,1)=="A"' receptor.pdb.clean.pdb > receptor_cleanA.pdb
+
+--------
+Step 1:
+--------
+Create new folder, put there the clean pdb file with *only* the receptor chain from Step 0, in root folder or wherever (e.g., ./Pdb/receptor_cleanA.pdb)
+
+--------
+Step 2:
+--------
+Choose or extract peptide sequence
+
+--------
+Step 3:
+--------
+Run folder preparation script:
+$ $PYTHON $SCRIPTS/Prepare/prepare.py <receptor_pdb> <peptide_sequence_string>
+
+--------
+Step 3a (optional alternative to Step 3):
+--------
+If you have a reference (e.g. native) file for the run, and you also like it to be used to extract binding site information, clean the reference file as in Step 0, but keep both receptor and peptide chains, and add the referennce file as a third cmd-line argument.
+$ $PYTHON $SCRIPTS/Prepare/prepare.py <receptor_pdb> <peptide_sequence_string> <native-file>
+
+Notes: 
+- Make sure the residue numbers are identical in the native file and the start file, *especially for the receptor* (might work if different resids for peptide, as long as same number of residues - not sure)
+- It is assumed that the receptor is chain A and that the peptide is chain B in the native file. -
+If you would like to omit the site constraints, you will have to delete them from the input, you will have to uncomment the relevant lines in Inputs/flags_abinitio
+
+--------
+Step 4:
+--------
+Checks - double and triple check that you got a running folder that makes sense
+
+4a - open Input/start.pdb in pymol and see that it makes sense, sequence correct etc.
+
+4b - ls -lth Frags/, see that the files are not zero sized
+
+4c - open Input/flags_abinito, make sure it makies sense as well
+
+4d - etc.
+
+--------
+Step 5 (optional):
+--------
+Edit Input/start.pdb as needed, add a constraint file if needed and update it in the Input/flags_abinitio file - this all requires a little bit of genreal Rosetta and FlexPepDock knowledge. The constraint file will be generated automatically, if a native file is included in Step 3 (see Step 3a)
+
+--------
+Step 6:
+--------
+Running FlexPepDock on Input, several options:
+
+6a $ ln -s Input/ Run/
+  $ $ROSETTA/rosetta_source/bin/FlexPepDocking.mpi.linuxgccrelease -database $ROSETTA/rosetta_database/  @Input/flags_abinitio  -scorefile score.sc -nstruct <# of output models>
+  See submit.sh for more information about clustering, if needed
+
+6b - as in 6a, but using multiple processes with mpi, e.g.
+  $mpirun -np `nproc` $ROSETTA/...."
+  Comment:  talk to system if "mpirun" is not installed
+
+6c - run on cluster, e.g. on UCSF QB3 cluster (see Salilab wiki for details):
+  $ qsub $SCIPTS/SubmitAndCluster/submit.sh
+  You might need to edit $SCRIPTS/SubmitAndCluster/submit.sh PBS file - currently it runs fpdock to produce models, then automatically clusters the resulting PDBs
+
+6a - run locally, you will need to create an alias from Input/ to Run/:
+
+--------
+Step 7:
+--------
+  Post processing - that depends on your exact goal, but see PostProcess/ fodler for some useful utility scripts
+
+
+BUGS AND ISSUES:
+================
+1) Native file is used for two purposes: (a) generates constraints file for receptor binding site (b) added as a flag in Input/flags_abinitio for statistics about output model, which may not be necessary for specificity prediction. For now, may need to omit this flag manually before running (Step 6) by editing Input/flags_abinitio
+2) Prepare.py currently may have an error in the output Input/flags_abinitio file for short peptides (<9 aa) - need to check (may include flag for 9mer fragments unnecessarily)
+3) It may be that the receptor chain has to be chain A and the peptide chain chain B, not sure - will probably work with different chains as well.
+4) We may in the future want to use the native peptide conformation for the initial peptide backbone conformation (regardless of sequence, as long as same length). This requires adaptations to Prepare.py
+5) You could always edit start.pdb before running (Step 6), to e.g. change the initial position of the peptide
