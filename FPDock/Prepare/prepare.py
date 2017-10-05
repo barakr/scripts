@@ -274,7 +274,10 @@ def prepare_from_receptor_pdb_and_pep_seq(receptor_pdb,
                     shell=True)
     transform_peptide.transform_peptide("start_raw.pdb", "start.pdb") # move peptide away from interface
     soft_link_if_needed("../Frags", "Frags")
-    soft_link_if_needed(native_pdb, "native.pdb")
+    if os.path.isabs(native_pdb):
+        soft_link_if_needed(native_pdb, "native.pdb")
+    else:
+        soft_link_if_needed("../" + native_pdb, "native.pdb")
     soft_link_if_needed("../../Scripts/", "Scripts")
     if(get_pep_length("start.pdb") < 9):
         print_string_to_file("flags_abinitio", flags_abinitio35)
