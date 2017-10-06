@@ -83,14 +83,39 @@ def get_pep_length(pdbfile):
     pep = model["B"]
     return sum(1 for r in pep.get_residues())
 
-def switch_chain(pdbfile,chain_id="A"):
+class SelectChain(Bio.PDB.Select):
+    def __init__(self, selection_chain):
+        self._selection_chain= selection_chain
+
+    def accept_chain(self, chain):
+        return chain.id==self._selection_chain
+
+def save_first_chain_as(pdbfile,out_pdbfile, chain_id="A"):
     structure = Bio.PDB.PDBParser().get_structure(pdbfile, pdbfile)
-    chain = structure.get_chains().next()
-    if chain.id!=chain_id:
-        chain.id=chain_id
+    chains = list(structure.get_chains())
+    assert(len(chains)>0)
+    if chains[0].id != chain_id:
+        print("Chains", chains[0].id, chain_id, pdbfile, out_pdbfile)
+        chains[0].id= chain_id
+    for chain in chains[1:]:
+        if chain.id==chain_id:
+            chain.id=" "
     io=Bio.PDB.PDBIO()
     io.set_structure(structure)
-    io.save(pdbfile)
+    io.save(out_pdbfile, select=SelectChain(chain_id))
+
+def set_chains(pdbfile,out_pdbfile, chain_ids=["A","B"]):
+    ''' set first chain to chain_ids[0], second tp chain_ids[1], etc. '''
+    structure = Bio.PDB.PDBParser().get_structure(pdbfile, pdbfile)
+    chains = list(structure.get_chains())
+    assert(len(chains)==len(chain_ids))
+    for chain, chain_id in zip(structure.get_chains(), chain_ids):
+        if chain.id != chain_id:
+            chain.id= chain_id
+    io=Bio.PDB.PDBIO()
+    io.set_structure(structure)
+    io.save(out_pdbfile)
+
 
 def print_string_to_file(filename, string):
     FILE = open(filename,'w')
@@ -259,7 +284,7 @@ def prepare_from_receptor_pdb_and_pep_seq(receptor_pdb,
            get_interface.print_rosetta_sites(native_pdb, sites_file_handle)
            flags_abinitio35=  flags_abinitio35 + site_constraints
            flags_abinitio359= flags_abinitio359 + site_constraints
-    switch_chain(receptor_pdb, "A") # TODO: work on copy!!
+    save_first_chain_as(receptor_pdb, "Input/"+receptor_pdb, "A") # TODO: work on copy!!
     pep_fasta = "pep.fasta"
     pep_pdb = "pep.pdb"
     create_fasta_from_seq(pep_seq, pep_fasta)
@@ -267,17 +292,18 @@ def prepare_from_receptor_pdb_and_pep_seq(receptor_pdb,
     os.chdir("Input")
     command = ROSETTA + "/rosetta_source/bin/BuildPeptide.default.linuxgccrelease -database " + \
         ROSETTA + "/rosetta_database/ -in:file:fasta ../" + pep_fasta + \
-        " -out:file:o " + pep_pdb
+        " -out:file:o raw_" + pep_pdb
     subprocess.call(command, shell=True)
-    switch_chain(pep_pdb, "B")
-    subprocess.call("cat ../%s %s > start_raw.pdb" % (receptor_pdb, pep_pdb),
+    save_first_chain_as("raw_"+pep_pdb, pep_pdb, "B")
+    subprocess.call("cat %s %s > start_raw.pdb" % (receptor_pdb, pep_pdb),
                     shell=True)
     transform_peptide.transform_peptide("start_raw.pdb", "start.pdb") # move peptide away from interface
     soft_link_if_needed("../Frags", "Frags")
     if os.path.isabs(native_pdb):
-        soft_link_if_needed(native_pdb, "native.pdb")
+        soft_link_if_needed(native_pdb, "native_raw.pdb")
     else:
-        soft_link_if_needed("../" + native_pdb, "native.pdb")
+        soft_link_if_needed("../" + native_pdb, "native_raw.pdb")
+    set_chains("native_raw.pdb", "native.pdb", ["A","B"])
     soft_link_if_needed("../../Scripts/", "Scripts")
     if(get_pep_length("start.pdb") < 9):
         print_string_to_file("flags_abinitio", flags_abinitio35)
