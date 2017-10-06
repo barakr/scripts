@@ -24,20 +24,18 @@ Protocol:
 ==========
 
 -------
-Step 0: 
+Step 0:
 -------
 Prepare your receptor PDB file:
-* Prepare a pdb file with receptor chain and call it 'receptor.pdb'
+* Prepare a pdb file whose first chain is the receptor chain and call it 'receptor.pdb'
 * Clean receptor file, e.g. for receptor.pdb, use:
-   $python $ROSETTA/rosetta_tools/fragment_tools/pdb2vall/pdb_scripts/clean_pdb.py receptor.pdb 
+   $python $ROSETTA/rosetta_tools/fragment_tools/pdb2vall/pdb_scripts/clean_pdb.py receptor.pdb
 * You will get a new file - receptor.pdb.clean.pdb
-* Keep only the receptor chain, e.g., for chain A:
-   $awk 'substr($0,22,1)=="A"' receptor.pdb.clean.pdb > receptor_cleanA.pdb
 
 --------
 Step 1:
 --------
-Create new folder, put there the clean pdb file with *only* the receptor chain from Step 0, in root folder or wherever (e.g., ./Pdb/receptor_cleanA.pdb)
+Create new folder, put there the clean pdb file whose first chain is the receptor chain from Step 0, in root folder or wherever (e.g., ./Pdb/receptor.pdb.clean.pdb)
 
 --------
 Step 2:
@@ -53,10 +51,10 @@ $ $PYTHON $SCRIPTS/Prepare/prepare.py <receptor_pdb> <peptide_sequence_string>
 --------
 Step 3a (optional alternative to Step 3):
 --------
-If you have a reference (e.g. native) file for the run, and you also like it to be used to extract binding site information, clean the reference file as in Step 0, but keep both receptor and peptide chains, and add the referennce file as a third cmd-line argument.
+If you have a reference (e.g. native) file for the run, and you also like it to be used to extract binding site information, clean the reference file as in Step 0, but keep both receptor and peptide chains, and add the referennce file as a third cmd-line argument. It is assumed that the first chain in the reference file is the receptor, and the second is the peptide.
 $ $PYTHON $SCRIPTS/Prepare/prepare.py <receptor_pdb> <peptide_sequence_string> <native-file>
 
-Notes: 
+Notes:
 - Make sure the residue numbers are identical in the native file and the start file, *especially for the receptor* (might work if different resids for peptide, as long as same number of residues - not sure)
 - It is assumed that the receptor is chain A and that the peptide is chain B in the native file. -
 If you would like to omit the site constraints, you will have to delete them from the input, you will have to uncomment the relevant lines in Inputs/flags_abinitio
