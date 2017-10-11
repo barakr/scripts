@@ -22,7 +22,7 @@ ROSETTA=os.environ['ROSETTA']
 flags_basic= '''
 # io flags:
 -s Run/start.pdb
--native Run/native.pdb
+#-native Run/native.pdb
 -out:file:silent_struct_type binary
 
 # optimization flags:
@@ -268,7 +268,7 @@ def prepare_from_receptor_pdb_and_pep_seq(receptor_pdb,
     and a fasta file with the peptide sequence (receptor_pdb and pep_fasta,
     resp.)
 
-    native_pdb - if specified, pdb with native complex
+    native_pdb - if specified, pdb with native complex for exracting native interface as a restraint
     '''
     global flags_abinitio35
     global flags_abinitio359
